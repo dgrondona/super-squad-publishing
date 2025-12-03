@@ -1,27 +1,36 @@
-import { client } from '@/sanity/lib/client'
+// app/artist/[slug]/page.tsx
+import { fetchDataFromSlug, fetchAllSlugs } from "@/sanity/lib/utils";
 
-export default async function ArtistsPage() {
-  const artists = await client.fetch(`*[_type == "artist"]{
-    name,
-    slug,
-    bio,
-    "photoUrl": photo.asset->url,
-    socialLinks
-  }`)
+export const dynamic = "force-static";
+
+export async function generateStaticParams() {
+
+  const slugs = await fetchAllSlugs("artist");
+  return slugs.map(slug => ({ slug }));
+
+}
+
+export default async function ArtistPage(
+
+  { params, }: {
+    params: Promise<{ slug: string }>;
+  }
+
+) {
+
+  const { slug } = await params;
+
+    const artist = await fetchDataFromSlug("artist", slug); // use fetchSlug to return info from Sanity
+
+    if (!artist) {
+    return <div>Artist not found</div>;
+  }
 
   return (
     <div>
-      <h1>Artists</h1>
-      {artists.map((artist: any) => (
-        <div key={artist.slug.current}>
-          <h2>{artist.name}</h2>
-          {artist.photoUrl && <img src={artist.photoUrl} alt={artist.name} width={200} />}
-          <p>{artist.bio}</p>
-          {artist.socialLinks?.map((link: string) => (
-            <a key={link} href={link} target="_blank" rel="noreferrer">{link}</a>
-          ))}
-        </div>
-      ))}
+      <h1>{artist.name}</h1>
+      {/* etc */}
     </div>
-  )
+  );
+
 }
