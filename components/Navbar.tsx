@@ -1,4 +1,4 @@
-// run in browser
+// render in client
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { client } from "@/sanity/lib/client";
 
-// define types
+// types
 type navItem = {
   label: string;
   href: string;
@@ -24,46 +24,36 @@ type navItem = {
 type navCategory = {
   label: string;
   items: navItem[];
-}
-
+};
 
 export default function Navbar() {
-
-  // store categories fetched from Sanity
   const [categories, setCategories] = useState<navCategory[]>([]);
 
-  // runs once per component mount
   useEffect(() => {
-
-    async function fetchNavigation() {
-
-      try{
-
-        // fetch top level navigation document from Sanity
-        const navigation = await client.fetch(`
-          *[_type == "navigation"][0]{
-            categories[]{
-              label,
-              mode,
-              documentType,
-              links
-            }
+    async function fetchData() {
+      try {
+        // fetch catagory documents
+        const cats = await client.fetch(`
+          *[_type == "category"]{
+            label,
+            mode,
+            documentType,
+            links
           }
         `);
 
-        // process each category
-        const resolvedCategories = await Promise.all(
-          navigation.categories.map(async (cat: any) => {
-
-            // if category is "auto", fetch items dynamically based on documentType
-            if (cat.mode === 'auto') {
+        // resolve each category
+        const resolved = await Promise.all(
+          cats.map(async (cat: any) => {
+            if (cat.mode === "auto") {
+              // Fetch all docs of this type
               const items = await client.fetch(`
                 *[_type == "${cat.documentType}"]{
-                  title,
+                  "title": name,
                   "slug": slug.current
                 }
               `);
-              
+
               return {
                 label: cat.label,
                 items: items.map((i: any) => ({
@@ -73,25 +63,27 @@ export default function Navbar() {
               };
             }
 
+            // manual mode
+            return {
+              label: cat.label,
+              items: cat.links || []
+            };
           })
         );
 
-        // save processed catagories
-        setCategories(resolvedCategories);
-      } catch (error) {
-        // if fetch fails, log error
-        console.error('Failed to fetch nativation:', error);
+        // store in state
+        setCategories(resolved);
+
+      } catch (err) {
+        console.error("Navbar fetch error:", err);
       }
     }
 
-    fetchNavigation(); // call the fetch function
-
-  }, []); // empty dependency
+    fetchData();
+  }, []); // empty dependency array
 
   return (
-
     <header className="border-b bg-background">
-
       <div className="container mx-auto flex h-16 items-center">
         <Link href="/" className="mr-8 font-semibold text-xl">
           Super Squad Publishing
@@ -99,35 +91,25 @@ export default function Navbar() {
 
         <NavigationMenu>
           <NavigationMenuList>
-
             {categories.map((category) => (
-
               <NavigationMenuItem key={category.label}>
-
                 <NavigationMenuTrigger>{category.label}</NavigationMenuTrigger>
 
                 <NavigationMenuContent>
-
                   <ul className="grid gap-2 p-4 w-[200px]">
                     {category.items.map((item) => (
                       <li key={item.href}>
-
                         <NavigationMenuLink asChild>
-
                           <Link
                             href={item.href}
                             className="block px-2 py-1 text-sm hover:bg-accent rounded"
                           >
                             {item.label}
                           </Link>
-
                         </NavigationMenuLink>
-
                       </li>
                     ))}
-
                   </ul>
-
                 </NavigationMenuContent>
               </NavigationMenuItem>
             ))}
