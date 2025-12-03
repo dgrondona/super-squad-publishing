@@ -63,24 +63,14 @@ export default function Navbar() {
                   "slug": slug.current
                 }
               `);
-
+              
               return {
                 label: cat.label,
-
-                // map each item to navItem format
                 items: items.map((i: any) => ({
                   label: i.title,
-                  href: '/${cat.documentType}/${i.slug}'
+                  href: `/${cat.documentType}/${i.slug}`
                 }))
               };
-            } else {
-
-              // if category is manual, use link array
-              return {
-                label: cat.label,
-                items: cat.links || [] // fallback to empty array
-              };
-
             }
 
           })
@@ -96,7 +86,7 @@ export default function Navbar() {
 
     fetchNavigation(); // call the fetch function
 
-  }, []); // empty dependency array
+  }, []); // empty dependency
 
   return (
 
