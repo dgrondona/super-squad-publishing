@@ -9,8 +9,31 @@ import {
 import Link from "next/link";
 import { client } from "@/sanity/lib/client";
 
+interface NavigationLink {
+  label: string;
+  href: string;
+}
+
+interface NavigationCategory {
+  label: string;
+  mode: "auto" | "manual";
+  documentType?: string;
+  links?: NavigationLink[];
+  items?: NavigationLink[];
+}
+
+interface NavigationData {
+  categories: NavigationCategory[];
+}
+
+interface SanityItem {
+  title: string;
+  slug: string;
+}
+
+
 export default async function Navbar() {
-  const navigation = await client.fetch(`
+  const navigation: NavigationData = await client.fetch(`
     *[_type == "navigation"][0]{
       categories[]{
         label,
@@ -21,13 +44,12 @@ export default async function Navbar() {
     }
   `);
 
-  const categories = navigation?.categories ?? []; // fallback to empty array
+  const categories: NavigationCategory[] = navigation?.categories ?? [];
 
-  // Fetch auto category items
-  const resolvedCategories = await Promise.all(
-    navigation.categories.map(async (cat) => {
-      if (cat.mode === "auto") {
-        const items = await client.fetch(`
+  const resolvedCategories: NavigationCategory[] = await Promise.all(
+    categories.map(async (cat) => {
+      if (cat.mode === "auto" && cat.documentType) {
+        const items: SanityItem[] = await client.fetch(`
           *[_type == "${cat.documentType}"]{
             title,
             "slug": slug.current
@@ -62,14 +84,10 @@ export default async function Navbar() {
           <NavigationMenuList>
             {resolvedCategories.map((category) => (
               <NavigationMenuItem key={category.label}>
-
-                <NavigationMenuTrigger>
-                  {category.label}
-                </NavigationMenuTrigger>
-
+                <NavigationMenuTrigger>{category.label}</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid gap-2 p-4 w-[200px]">
-                    {category.items.map((item) => (
+                    {category.items?.map((item) => (
                       <li key={item.href}>
                         <NavigationMenuLink asChild>
                           <Link
@@ -83,7 +101,6 @@ export default async function Navbar() {
                     ))}
                   </ul>
                 </NavigationMenuContent>
-
               </NavigationMenuItem>
             ))}
           </NavigationMenuList>
@@ -92,3 +109,4 @@ export default async function Navbar() {
     </header>
   );
 }
+
