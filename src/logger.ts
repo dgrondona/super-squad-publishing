@@ -23,10 +23,10 @@ function getTimeStamp() {
 function createLogger() {
 
     const log = (level: logLevel, message: string, context?: logContext) => {
-        const timestamp = getTimeStamp;
+        const timestamp = getTimeStamp();
 
         const color = levelColors[level] || "\x1b[0m";
-        const reset = "x1b[0m";
+        const reset = "\x1b[0m";
 
         const prefix = `${color}[${timestamp}] [${level.toUpperCase()}]:${reset} `;
         const args = context ? [`${prefix}${message}`, context] : [`${prefix}${message}`];
