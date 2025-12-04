@@ -2,26 +2,56 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.log = void 0;
 var levelColors = {
-    info: "\x1b[0m", // default
-    debug: "\x1b[0m", // default
-    warn: "\x1b[33m", // yellow
+    info: "\x1b[92m", // green
+    debug: "\x1b[36m", // cyan
+    trace: "\x1b[90m", // gray
+    warn: "\x1b[93m", // yellow
     error: "\x1b[31m", // red
-    fatal: "\x1b[31m", // red
+    fatal: "\x1b[31m\x1b[103m", // red
 };
 function getTimeStamp() {
     return new Date().toISOString();
 }
+function formatContext(ctx) {
+    if (!ctx)
+        return "";
+    var gray = "\x1b[90m";
+    var reset = "\x1b[0m";
+    // Convert each key/value pair to a "key=value" string
+    var parts = Object.entries(ctx).map(function (_a) {
+        var key = _a[0], value = _a[1];
+        return "".concat(key, "=").concat(value);
+    });
+    // Join all parts with a space so it stays on one line
+    return gray + parts.join(" ") + reset;
+}
+function generatePrefix(level) {
+    var timestamp = getTimeStamp();
+    var bold = "\x1b[1m";
+    var reset = "\x1b[0m";
+    if (level == "trace") {
+        return "".concat(levelColors[level], "[").concat(timestamp, "] [").concat(level.toUpperCase(), "]:").concat(reset, " ");
+    }
+    return "".concat(levelColors[level]).concat(bold, "[").concat(timestamp, "] [").concat(level.toUpperCase(), "]:").concat(reset, " ");
+}
+function generateArgs(level, message, context) {
+    var color = levelColors[level];
+    var gray = "\x1b[90m";
+    var reset = "\x1b[0m";
+    var prefix = generatePrefix(level);
+    var contextString = formatContext(context);
+    if (level == "trace") {
+        return context ? ["".concat(prefix).concat(color).concat(message).concat(reset), contextString] : ["".concat(prefix).concat(color).concat(message).concat(reset)];
+    }
+    return context ? ["".concat(prefix).concat(message), contextString] : ["".concat(prefix).concat(message)];
+}
 function createLogger() {
     var log = function (level, message, context) {
-        var timestamp = getTimeStamp();
-        var color = levelColors[level] || "\x1b[0m";
-        var bold = "\x1b[1m";
-        var reset = "\x1b[0m";
-        var prefix = "".concat(color).concat(bold, "[").concat(timestamp, "] [").concat(level.toUpperCase(), "]:").concat(reset, " ");
-        var args = context ? ["".concat(prefix).concat(message), context] : ["".concat(prefix).concat(message)];
+        var args = generateArgs(level, message, context);
         switch (level) {
             case "info":
             case "debug":
+            case "trace":
                 console.log.apply(console, args);
                 break;
             case "warn":
@@ -36,6 +66,7 @@ function createLogger() {
     return {
         info: function (msg, ctx) { return log("info", msg, ctx); },
         debug: function (msg, ctx) { return log("debug", msg, ctx); },
+        trace: function (msg, ctx) { return log("trace", msg, ctx); },
         warn: function (msg, ctx) { return log("warn", msg, ctx); },
         error: function (msg, ctx) { return log("error", msg, ctx); },
         fatal: function (msg, ctx) { return log("fatal", msg, ctx); },
