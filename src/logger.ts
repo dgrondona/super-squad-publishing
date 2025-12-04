@@ -1,9 +1,96 @@
-import { error } from "console";
+import { error, info } from "console";
+import fs from "fs";
+import path from "path";
 
-type logLevel = "info" | "debug" | "trace" | "warn" | "error" | "fatal";
+export type logLevel = "info" | "debug" | "trace" | "warn" | "error" | "fatal";
 
-interface logContext {
+export interface logContext {
     [key: string]: any;
+}
+
+export interface logEntry {
+    timestamp: string;
+    level: logLevel;
+    message: string;
+    context?: logContext;
+    stack?: string[];
+}
+
+export interface loggerOptions {
+    level?: logLevel;
+    context?: logContext;
+    outputFile?: string | null;
+}
+
+class Log {
+    private level: logLevel;
+    private context: logContext;
+    private outputFile: string | null;
+    private levels: logLevel[] = ["trace", "info", "debug", "warn", "error", "fatal"];
+
+    // class constructor
+    constructor(options: loggerOptions = {}) {
+        this.level = options.level ?? "info";
+        this.context = options.context ?? {};
+        this.outputFile = options.outputFile ?? null;
+
+        // overwrite log file on startup
+        if(this.outputFile) {
+            const dir = path.dirname(this.outputFile);
+            if(!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
+            fs.writeFileSync(this.outputFile, "");
+        }
+    }
+
+    // get stack trace from where we are logging
+    private stackTrace(maxLines = 5) {
+        const err = new Error();
+        if (!err.stack) return undefined;
+
+        return err.stack.split("\n").slice(2, 2 + maxLines).map(line => line.trim());
+    }
+
+    // build the log
+    private buildLog(level: logLevel, message: string, context?: logContext): logEntry {
+        
+        return {
+            timestamp: new Date().toISOString(),
+            level,
+            message,
+            context: { ...this.context, ...context },
+            stack: this.stackTrace(),
+        };
+
+    }
+
+    // print to console
+    private printHandler(log: logEntry) {
+        
+    }
+
+    // write to logs
+    private write(log: logEntry) {
+
+    }
+
+    // core logging
+    private log(level: logLevel, msg: string, ctx?: logContext) {
+        if(!this.level.includes(level)) {
+            throw new Error(`Invalid log level: ${level}`);
+        }
+
+        const entry = this.buildLog(level, msg, ctx);
+        this.write(entry);
+
+    }
+
+    // public interface
+    trace(msg: string, ctx?: logContext) { this.log("trace", msg, ctx); }
+    info(msg: string, ctx?: logContext) { this.log("info", msg, ctx); }
+    debug(msg: string, ctx?: logContext) { this.log("debug", msg, ctx); }
+    warn(msg: string, ctx?: logContext) { this.log("warn", msg, ctx); }
+    error(msg: string, ctx?: logContext) { this.log("error", msg, ctx); }
+    fatal(msg: string, ctx?: logContext) { this.log("fatal", msg, ctx); }
 }
 
 const levelColors: Record<logLevel, string> = {
