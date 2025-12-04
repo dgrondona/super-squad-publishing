@@ -21,6 +21,19 @@ function getTimeStamp() {
 
 }
 
+function getStackTrace(maxLines = 5): string {
+    const err = new Error();
+    if (!err.stack) return "";
+
+    const stack = err.stack.split("\n").slice(4, 4 + maxLines);
+
+    // format lines
+    const yellow = "\x1b[93m";
+    const reset = "\x1b[0m";
+
+    return stack.map(line => `${yellow}${line.trim()}${reset}`).join("\n");
+}
+
 function formatContext(ctx?: logContext) {
   if (!ctx) return "";
 
@@ -58,6 +71,10 @@ function generateArgs(level: logLevel, message: string, context?: logContext) {
 
     if(level == "trace") {
         return context ? [`${prefix}${color}${message}${reset}`, contextString] : [`${prefix}${color}${message}${reset}`];
+    } else if (level == "error" || level == "fatal") {
+        const stack = "\n" + getStackTrace();
+
+        return context ? [`${prefix}${message}`, contextString, stack] : [`${prefix}${message}`, stack];
     }
 
     return context ? [`${prefix}${message}`, contextString] : [`${prefix}${message}`];
