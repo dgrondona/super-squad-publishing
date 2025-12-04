@@ -21,6 +21,22 @@ function getTimeStamp() {
 
 }
 
+function formatStackLine(line: string) {
+    const funcMatch = line.match(/at (.+?) \(/); // function name
+    const pathMatch = line.match(/\((.+):(\d+):(\d+)\)/); // file:line:col
+
+    let funcName = funcMatch ? `\x1b[93m${funcMatch[1]}\x1b[0m` : '';
+    let filePath = '';
+    if (pathMatch) {
+        const [_, file, lineNum, col] = pathMatch;
+        const shortFile = file.replace(process.cwd(), '.'); // shorten absolute path
+        filePath = `\x1b[33m${shortFile}\x1b[0m:\x1b[90m${lineNum}:${col}\x1b[0m`;
+    }
+
+    return `\x1b[90m    at \x1b[0m${funcName} (${filePath})`;
+
+}
+
 function getStackTrace(maxLines = 5): string {
     const err = new Error();
     if (!err.stack) return "";
@@ -31,7 +47,7 @@ function getStackTrace(maxLines = 5): string {
     const yellow = "\x1b[93m";
     const reset = "\x1b[0m";
 
-    return stack.map(line => `${yellow}${line.trim()}${reset}`).join("\n");
+    return stack.map(formatStackLine).join("\n");
 }
 
 function formatContext(ctx?: logContext) {
@@ -72,7 +88,7 @@ function generateArgs(level: logLevel, message: string, context?: logContext) {
     if(level == "trace") {
         return context ? [`${prefix}${color}${message}${reset}`, contextString] : [`${prefix}${color}${message}${reset}`];
     } else if (level == "error" || level == "fatal") {
-        const stack = "\n" + getStackTrace();
+        const stack = "\n" + getStackTrace() + "\n";
 
         return context ? [`${prefix}${message}`, contextString, stack] : [`${prefix}${message}`, stack];
     }
