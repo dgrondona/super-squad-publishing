@@ -26,9 +26,10 @@ function createLogger() {
         const timestamp = getTimeStamp();
 
         const color = levelColors[level] || "\x1b[0m";
+        const bold = "\x1b[1m";
         const reset = "\x1b[0m";
 
-        const prefix = `${color}[${timestamp}] [${level.toUpperCase()}]:${reset} `;
+        const prefix = `${color}${bold}[${timestamp}] [${level.toUpperCase()}]:${reset} `;
         const args = context ? [`${prefix}${message}`, context] : [`${prefix}${message}`];
 
         switch(level) {
